@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt')
+const bycrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const userModel = require('../models/users.model');
 
@@ -26,11 +26,25 @@ const registerUser = async (req, res)=>{
             password :hashedPass
         })
 
-        return res.status(200).json({
-            id :user._id,
-            username :user.username,
-            email : user.email
+       
+        const token = jwt.sign(
+            { id: user._id, username: user.username },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        )
+
+        res.cookie("token", token)
+
+
+        res.status(201).json({
+            message: "User registered successfully",
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email
+            }
         })
+
     }catch(error){
         console.error(error)
 
@@ -56,7 +70,7 @@ const loginUser = async (req, res) =>{
         }
 
         //compare password
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        const isPasswordCorrect = await bycrypt.compare(password, user.password);
 
         if(!isPasswordCorrect){
             return res.status(401).json({
@@ -72,13 +86,19 @@ const loginUser = async (req, res) =>{
             },
             process.env.JWT_SECRET,
             {
-            expiresIn: "7d"
+            expiresIn: "1d"
             }
         )
 
+        res.cookie("token", token)
+
         return res.status(200).json({
-                message: "Login successful",
-                token
+                message: "User Login successfully",
+                user :{
+                    id: user._id,
+                    username :user.username,
+                    email : user.email
+                }
         });
     }catch(error){
         console.error(error)
