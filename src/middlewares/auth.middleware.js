@@ -1,29 +1,41 @@
 const jwt = require("jsonwebtoken");
+const blacklistModel = require("../models/blacklist.model");
 
-const authMiddleware = (req, res, next) => {
-
+const authUser = async (req, res, next) => {
     try {
 
-        const authHeader = req.headers.authorization;
+        // Get token automatically from cookie
+        const token = req.cookies.token;
 
-        if (!authHeader) {
+        if (!token) {
             return res.status(401).json({
                 message: "Authentication required"
             });
         }
 
-        const token = authHeader.split(" ")[1];
+        // Check blacklist
+        const isBlacklisted = await blacklistModel.findOne({ token });
 
+        if (isBlacklisted) {
+            return res.status(401).json({
+                message: "Token is blacklisted"
+            });
+        }
+
+        // Verify token
         const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET
         );
 
+        // Attach user information
         req.user = decoded;
 
         next();
 
     } catch (error) {
+
+        console.log(error.message);
 
         return res.status(401).json({
             message: "Invalid or expired token"
@@ -31,4 +43,4 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-module.exports = authMiddleware;
+module.exports = { authUser };
